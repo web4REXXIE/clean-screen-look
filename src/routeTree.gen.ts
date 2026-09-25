@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ActivateRouteImport } from './routes/activate'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CardRouteImport } from './routes/card'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as SecurityRouteImport } from './routes/security'
@@ -18,6 +20,16 @@ import { Route as SupportRouteImport } from './routes/support'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ActivateRoute = ActivateRouteImport.update({
+  id: '/activate',
+  path: '/activate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CardRoute = CardRouteImport.update({
@@ -43,6 +55,8 @@ const SupportRoute = SupportRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/activate': typeof ActivateRoute
+  '/auth': typeof AuthRoute
   '/card': typeof CardRoute
   '/how-it-works': typeof HowItWorksRoute
   '/security': typeof SecurityRoute
@@ -50,6 +64,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/activate': typeof ActivateRoute
+  '/auth': typeof AuthRoute
   '/card': typeof CardRoute
   '/how-it-works': typeof HowItWorksRoute
   '/security': typeof SecurityRoute
@@ -58,6 +74,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/activate': typeof ActivateRoute
+  '/auth': typeof AuthRoute
   '/card': typeof CardRoute
   '/how-it-works': typeof HowItWorksRoute
   '/security': typeof SecurityRoute
@@ -65,14 +83,38 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/card' | '/how-it-works' | '/security' | '/support'
+  fullPaths:
+    | '/'
+    | '/activate'
+    | '/auth'
+    | '/card'
+    | '/how-it-works'
+    | '/security'
+    | '/support'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/card' | '/how-it-works' | '/security' | '/support'
-  id: '__root__' | '/' | '/card' | '/how-it-works' | '/security' | '/support'
+  to:
+    | '/'
+    | '/activate'
+    | '/auth'
+    | '/card'
+    | '/how-it-works'
+    | '/security'
+    | '/support'
+  id:
+    | '__root__'
+    | '/'
+    | '/activate'
+    | '/auth'
+    | '/card'
+    | '/how-it-works'
+    | '/security'
+    | '/support'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ActivateRoute: typeof ActivateRoute
+  AuthRoute: typeof AuthRoute
   CardRoute: typeof CardRoute
   HowItWorksRoute: typeof HowItWorksRoute
   SecurityRoute: typeof SecurityRoute
@@ -86,6 +128,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/activate': {
+      id: '/activate'
+      path: '/activate'
+      fullPath: '/activate'
+      preLoaderRoute: typeof ActivateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/card': {
@@ -121,6 +177,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ActivateRoute: ActivateRoute,
+  AuthRoute: AuthRoute,
   CardRoute: CardRoute,
   HowItWorksRoute: HowItWorksRoute,
   SecurityRoute: SecurityRoute,
