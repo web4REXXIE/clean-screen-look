@@ -94,7 +94,7 @@ function Dashboard() {
           <div>
             <Web3Card
               status={badge as "ACTIVE" | "PENDING" | "SUSPENDED"}
-              cardholder={profile?.full_name ?? undefined}
+              holder={profile?.full_name?.toUpperCase() ?? undefined}
               last4={card?.last4 ?? undefined}
               expiry={card?.expiry ?? undefined}
             />

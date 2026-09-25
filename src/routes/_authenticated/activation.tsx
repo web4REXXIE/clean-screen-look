@@ -123,7 +123,7 @@ function ActivationFlow() {
         <div className="grid gap-8 lg:grid-cols-2">
           <Web3Card
             status="ACTIVE"
-            cardholder={profile?.full_name ?? undefined}
+            holder={profile?.full_name?.toUpperCase() ?? undefined}
             last4={card.last4 ?? undefined}
             expiry={card.expiry ?? undefined}
           />
