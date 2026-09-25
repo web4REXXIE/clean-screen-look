@@ -14,16 +14,281 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activation_codes: {
+        Row: {
+          card_id: string
+          code: string
+          created_at: string
+          id: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          card_id: string
+          code: string
+          created_at?: string
+          id?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          card_id?: string
+          code?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activation_codes_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_label: string
+          created_at: string
+          id: string
+          new_state: string | null
+          previous_state: string | null
+          subject_user_id: string | null
+          web_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_label?: string
+          created_at?: string
+          id?: string
+          new_state?: string | null
+          previous_state?: string | null
+          subject_user_id?: string | null
+          web_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_label?: string
+          created_at?: string
+          id?: string
+          new_state?: string | null
+          previous_state?: string | null
+          subject_user_id?: string | null
+          web_id?: string | null
+        }
+        Relationships: []
+      }
+      cards: {
+        Row: {
+          activated_at: string | null
+          card_ref: string
+          cardholder_name: string
+          created_at: string
+          expiry: string
+          id: string
+          last4: string
+          status: Database["public"]["Enums"]["card_status"]
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          card_ref: string
+          cardholder_name?: string
+          created_at?: string
+          expiry?: string
+          id?: string
+          last4?: string
+          status?: Database["public"]["Enums"]["card_status"]
+          user_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          card_ref?: string
+          cardholder_name?: string
+          created_at?: string
+          expiry?: string
+          id?: string
+          last4?: string
+          status?: Database["public"]["Enums"]["card_status"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount_cents: number
+          card_id: string | null
+          created_at: string
+          currency: string
+          id: string
+          paid_at: string | null
+          provider: string
+          provider_session_id: string | null
+          reference: string
+          service_fee_id: string | null
+          service_name: string
+          status: Database["public"]["Enums"]["payment_status"]
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          card_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          paid_at?: string | null
+          provider?: string
+          provider_session_id?: string | null
+          reference: string
+          service_fee_id?: string | null
+          service_name?: string
+          status?: Database["public"]["Enums"]["payment_status"]
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          card_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          paid_at?: string | null
+          provider?: string
+          provider_session_id?: string | null
+          reference?: string
+          service_fee_id?: string | null
+          service_name?: string
+          status?: Database["public"]["Enums"]["payment_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_service_fee_id_fkey"
+            columns: ["service_fee_id"]
+            isOneToOne: false
+            referencedRelation: "service_fees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          last_activity: string
+          web_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id: string
+          last_activity?: string
+          web_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          last_activity?: string
+          web_id?: string
+        }
+        Relationships: []
+      }
+      service_fees: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          description: string
+          effective_date: string
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["fee_status"]
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          description?: string
+          effective_date?: string
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["fee_status"]
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          description?: string
+          effective_date?: string
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["fee_status"]
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      gen_hex: { Args: { _len: number }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "customer"
+      card_status: "pending_activation" | "active" | "suspended"
+      fee_status: "active" | "disabled"
+      payment_status:
+        | "unpaid"
+        | "payment_pending"
+        | "paid"
+        | "payment_failed"
+        | "refunded"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +415,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "customer"],
+      card_status: ["pending_activation", "active", "suspended"],
+      fee_status: ["active", "disabled"],
+      payment_status: [
+        "unpaid",
+        "payment_pending",
+        "paid",
+        "payment_failed",
+        "refunded",
+      ],
+    },
   },
 } as const
