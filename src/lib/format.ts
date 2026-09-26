@@ -27,8 +27,11 @@ export function dateOnly(value?: string | null) {
 
 export const CARD_STATUS_LABEL: Record<string, string> = {
   pending_activation: "Pending activation",
+  activation_pending: "Activation pending",
   active: "Active",
   suspended: "Suspended",
+  expired: "Expired",
+  cancelled: "Cancelled",
 };
 
 export const PAYMENT_STATUS_LABEL: Record<string, string> = {

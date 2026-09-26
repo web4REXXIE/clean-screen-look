@@ -20,6 +20,8 @@ export type Database = {
           code: string
           created_at: string
           id: string
+          last_used_at: string | null
+          status: string
           user_id: string
           verified_at: string | null
         }
@@ -28,6 +30,8 @@ export type Database = {
           code: string
           created_at?: string
           id?: string
+          last_used_at?: string | null
+          status?: string
           user_id: string
           verified_at?: string | null
         }
@@ -36,6 +40,8 @@ export type Database = {
           code?: string
           created_at?: string
           id?: string
+          last_used_at?: string | null
+          status?: string
           user_id?: string
           verified_at?: string | null
         }
@@ -89,34 +95,40 @@ export type Database = {
         Row: {
           activated_at: string | null
           card_ref: string
+          card_type: string
           cardholder_name: string
           created_at: string
           expiry: string
           id: string
           last4: string
           status: Database["public"]["Enums"]["card_status"]
+          updated_at: string
           user_id: string
         }
         Insert: {
           activated_at?: string | null
           card_ref: string
+          card_type?: string
           cardholder_name?: string
           created_at?: string
           expiry?: string
           id?: string
           last4?: string
           status?: Database["public"]["Enums"]["card_status"]
+          updated_at?: string
           user_id: string
         }
         Update: {
           activated_at?: string | null
           card_ref?: string
+          card_type?: string
           cardholder_name?: string
           created_at?: string
           expiry?: string
           id?: string
           last4?: string
           status?: Database["public"]["Enums"]["card_status"]
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -187,26 +199,44 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          created_by: string
+          deactivated: boolean
           email: string
           full_name: string
           id: string
+          is_demo: boolean
           last_activity: string
+          notes: string
+          updated_at: string
+          updated_by: string
           web_id: string
         }
         Insert: {
           created_at?: string
+          created_by?: string
+          deactivated?: boolean
           email?: string
           full_name?: string
           id: string
+          is_demo?: boolean
           last_activity?: string
+          notes?: string
+          updated_at?: string
+          updated_by?: string
           web_id: string
         }
         Update: {
           created_at?: string
+          created_by?: string
+          deactivated?: boolean
           email?: string
           full_name?: string
           id?: string
+          is_demo?: boolean
           last_activity?: string
+          notes?: string
+          updated_at?: string
+          updated_by?: string
           web_id?: string
         }
         Relationships: []
@@ -281,7 +311,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "customer"
-      card_status: "pending_activation" | "active" | "suspended"
+      card_status:
+        | "pending_activation"
+        | "active"
+        | "suspended"
+        | "activation_pending"
+        | "expired"
+        | "cancelled"
       fee_status: "active" | "disabled"
       payment_status:
         | "unpaid"
@@ -417,7 +453,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "customer"],
-      card_status: ["pending_activation", "active", "suspended"],
+      card_status: [
+        "pending_activation",
+        "active",
+        "suspended",
+        "activation_pending",
+        "expired",
+        "cancelled",
+      ],
       fee_status: ["active", "disabled"],
       payment_status: [
         "unpaid",

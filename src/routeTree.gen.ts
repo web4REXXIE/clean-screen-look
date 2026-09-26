@@ -18,8 +18,18 @@ import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as SecurityRouteImport } from './routes/security'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as AuthenticatedActivationRouteImport } from './routes/_authenticated/activation'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
+import { Route as AuthenticatedAdminAuditRouteImport } from './routes/_authenticated/admin/audit'
+import { Route as AuthenticatedAdminCardsRouteImport } from './routes/_authenticated/admin/cards'
+import { Route as AuthenticatedAdminCodesRouteImport } from './routes/_authenticated/admin/codes'
+import { Route as AuthenticatedAdminFeesRouteImport } from './routes/_authenticated/admin/fees'
+import { Route as AuthenticatedAdminPaymentsRouteImport } from './routes/_authenticated/admin/payments'
+import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
+import { Route as AuthenticatedAdminCustomersIndexRouteImport } from './routes/_authenticated/admin/customers.index'
+import { Route as AuthenticatedAdminCustomersIdRouteImport } from './routes/_authenticated/admin/customers.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -65,16 +75,70 @@ const AuthenticatedActivationRoute = AuthenticatedActivationRouteImport.update({
   path: '/activation',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminAuditRoute = AuthenticatedAdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminCardsRoute = AuthenticatedAdminCardsRouteImport.update({
+  id: '/cards',
+  path: '/cards',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminCodesRoute = AuthenticatedAdminCodesRouteImport.update({
+  id: '/codes',
+  path: '/codes',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminFeesRoute = AuthenticatedAdminFeesRouteImport.update({
+  id: '/fees',
+  path: '/fees',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
+const AuthenticatedAdminPaymentsRoute =
+  AuthenticatedAdminPaymentsRouteImport.update({
+    id: '/payments',
+    path: '/payments',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminSettingsRoute =
+  AuthenticatedAdminSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   id: '/api/public/stripe-webhook',
   path: '/api/public/stripe-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminCustomersIndexRoute =
+  AuthenticatedAdminCustomersIndexRouteImport.update({
+    id: '/customers/',
+    path: '/customers/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCustomersIdRoute =
+  AuthenticatedAdminCustomersIdRouteImport.update({
+    id: '/customers/$id',
+    path: '/customers/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -85,8 +149,18 @@ export interface FileRoutesByFullPath {
   '/security': typeof SecurityRoute
   '/support': typeof SupportRoute
   '/activation': typeof AuthenticatedActivationRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/cards': typeof AuthenticatedAdminCardsRoute
+  '/admin/codes': typeof AuthenticatedAdminCodesRoute
+  '/admin/fees': typeof AuthenticatedAdminFeesRoute
+  '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/customers/$id': typeof AuthenticatedAdminCustomersIdRoute
+  '/admin/customers/': typeof AuthenticatedAdminCustomersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -98,7 +172,16 @@ export interface FileRoutesByTo {
   '/support': typeof SupportRoute
   '/activation': typeof AuthenticatedActivationRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/admin/cards': typeof AuthenticatedAdminCardsRoute
+  '/admin/codes': typeof AuthenticatedAdminCodesRoute
+  '/admin/fees': typeof AuthenticatedAdminFeesRoute
+  '/admin/payments': typeof AuthenticatedAdminPaymentsRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/customers/$id': typeof AuthenticatedAdminCustomersIdRoute
+  '/admin/customers': typeof AuthenticatedAdminCustomersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -111,8 +194,18 @@ export interface FileRoutesById {
   '/security': typeof SecurityRoute
   '/support': typeof SupportRoute
   '/_authenticated/activation': typeof AuthenticatedActivationRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/admin/audit': typeof AuthenticatedAdminAuditRoute
+  '/_authenticated/admin/cards': typeof AuthenticatedAdminCardsRoute
+  '/_authenticated/admin/codes': typeof AuthenticatedAdminCodesRoute
+  '/_authenticated/admin/fees': typeof AuthenticatedAdminFeesRoute
+  '/_authenticated/admin/payments': typeof AuthenticatedAdminPaymentsRoute
+  '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/customers/$id': typeof AuthenticatedAdminCustomersIdRoute
+  '/_authenticated/admin/customers/': typeof AuthenticatedAdminCustomersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -125,8 +218,18 @@ export interface FileRouteTypes {
     | '/security'
     | '/support'
     | '/activation'
+    | '/admin'
     | '/dashboard'
+    | '/admin/audit'
+    | '/admin/cards'
+    | '/admin/codes'
+    | '/admin/fees'
+    | '/admin/payments'
+    | '/admin/settings'
     | '/api/public/stripe-webhook'
+    | '/admin/'
+    | '/admin/customers/$id'
+    | '/admin/customers/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -138,7 +241,16 @@ export interface FileRouteTypes {
     | '/support'
     | '/activation'
     | '/dashboard'
+    | '/admin/audit'
+    | '/admin/cards'
+    | '/admin/codes'
+    | '/admin/fees'
+    | '/admin/payments'
+    | '/admin/settings'
     | '/api/public/stripe-webhook'
+    | '/admin'
+    | '/admin/customers/$id'
+    | '/admin/customers'
   id:
     | '__root__'
     | '/'
@@ -150,8 +262,18 @@ export interface FileRouteTypes {
     | '/security'
     | '/support'
     | '/_authenticated/activation'
+    | '/_authenticated/admin'
     | '/_authenticated/dashboard'
+    | '/_authenticated/admin/audit'
+    | '/_authenticated/admin/cards'
+    | '/_authenticated/admin/codes'
+    | '/_authenticated/admin/fees'
+    | '/_authenticated/admin/payments'
+    | '/_authenticated/admin/settings'
     | '/api/public/stripe-webhook'
+    | '/_authenticated/admin/'
+    | '/_authenticated/admin/customers/$id'
+    | '/_authenticated/admin/customers/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -231,12 +353,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedActivationRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/audit': {
+      id: '/_authenticated/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AuthenticatedAdminAuditRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/cards': {
+      id: '/_authenticated/admin/cards'
+      path: '/cards'
+      fullPath: '/admin/cards'
+      preLoaderRoute: typeof AuthenticatedAdminCardsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/codes': {
+      id: '/_authenticated/admin/codes'
+      path: '/codes'
+      fullPath: '/admin/codes'
+      preLoaderRoute: typeof AuthenticatedAdminCodesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/fees': {
+      id: '/_authenticated/admin/fees'
+      path: '/fees'
+      fullPath: '/admin/fees'
+      preLoaderRoute: typeof AuthenticatedAdminFeesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/payments': {
+      id: '/_authenticated/admin/payments'
+      path: '/payments'
+      fullPath: '/admin/payments'
+      preLoaderRoute: typeof AuthenticatedAdminPaymentsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/settings': {
+      id: '/_authenticated/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/api/public/stripe-webhook': {
       id: '/api/public/stripe-webhook'
@@ -245,16 +423,59 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin/customers/': {
+      id: '/_authenticated/admin/customers/'
+      path: '/customers'
+      fullPath: '/admin/customers/'
+      preLoaderRoute: typeof AuthenticatedAdminCustomersIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/customers/$id': {
+      id: '/_authenticated/admin/customers/$id'
+      path: '/customers/$id'
+      fullPath: '/admin/customers/$id'
+      preLoaderRoute: typeof AuthenticatedAdminCustomersIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
+interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminAuditRoute: typeof AuthenticatedAdminAuditRoute
+  AuthenticatedAdminCardsRoute: typeof AuthenticatedAdminCardsRoute
+  AuthenticatedAdminCodesRoute: typeof AuthenticatedAdminCodesRoute
+  AuthenticatedAdminFeesRoute: typeof AuthenticatedAdminFeesRoute
+  AuthenticatedAdminPaymentsRoute: typeof AuthenticatedAdminPaymentsRoute
+  AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminCustomersIdRoute: typeof AuthenticatedAdminCustomersIdRoute
+  AuthenticatedAdminCustomersIndexRoute: typeof AuthenticatedAdminCustomersIndexRoute
+}
+
+const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminAuditRoute: AuthenticatedAdminAuditRoute,
+  AuthenticatedAdminCardsRoute: AuthenticatedAdminCardsRoute,
+  AuthenticatedAdminCodesRoute: AuthenticatedAdminCodesRoute,
+  AuthenticatedAdminFeesRoute: AuthenticatedAdminFeesRoute,
+  AuthenticatedAdminPaymentsRoute: AuthenticatedAdminPaymentsRoute,
+  AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminCustomersIdRoute: AuthenticatedAdminCustomersIdRoute,
+  AuthenticatedAdminCustomersIndexRoute: AuthenticatedAdminCustomersIndexRoute,
+}
+
+const AuthenticatedAdminRouteWithChildren =
+  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedActivationRoute: typeof AuthenticatedActivationRoute
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedActivationRoute: AuthenticatedActivationRoute,
+  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
 }
 

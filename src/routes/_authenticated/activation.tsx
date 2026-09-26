@@ -103,7 +103,7 @@ function ActivationFlow() {
     );
   }
 
-  if (status === "suspended") {
+  if (status === "suspended" || status === "expired" || status === "cancelled") {
     return (
       <Shell title="This card is suspended">
         <div className="flex gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-muted-foreground">
