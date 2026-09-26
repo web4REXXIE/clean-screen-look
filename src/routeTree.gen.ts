@@ -18,8 +18,12 @@ import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as SecurityRouteImport } from './routes/security'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as AuthenticatedActivationRouteImport } from './routes/_authenticated/activation'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
+import { Route as AuthenticatedAdminCustomersIndexRouteImport } from './routes/_authenticated/admin/customers.index'
+import { Route as AuthenticatedAdminCustomersIdRouteImport } from './routes/_authenticated/admin/customers.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -65,16 +69,38 @@ const AuthenticatedActivationRoute = AuthenticatedActivationRouteImport.update({
   path: '/activation',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
 const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   id: '/api/public/stripe-webhook',
   path: '/api/public/stripe-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminCustomersIndexRoute =
+  AuthenticatedAdminCustomersIndexRouteImport.update({
+    id: '/customers/',
+    path: '/customers/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCustomersIdRoute =
+  AuthenticatedAdminCustomersIdRouteImport.update({
+    id: '/customers/$id',
+    path: '/customers/$id',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -85,8 +111,12 @@ export interface FileRoutesByFullPath {
   '/security': typeof SecurityRoute
   '/support': typeof SupportRoute
   '/activation': typeof AuthenticatedActivationRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/customers/$id': typeof AuthenticatedAdminCustomersIdRoute
+  '/admin/customers/': typeof AuthenticatedAdminCustomersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -99,6 +129,9 @@ export interface FileRoutesByTo {
   '/activation': typeof AuthenticatedActivationRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/customers/$id': typeof AuthenticatedAdminCustomersIdRoute
+  '/admin/customers': typeof AuthenticatedAdminCustomersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -111,8 +144,12 @@ export interface FileRoutesById {
   '/security': typeof SecurityRoute
   '/support': typeof SupportRoute
   '/_authenticated/activation': typeof AuthenticatedActivationRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/customers/$id': typeof AuthenticatedAdminCustomersIdRoute
+  '/_authenticated/admin/customers/': typeof AuthenticatedAdminCustomersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -125,8 +162,12 @@ export interface FileRouteTypes {
     | '/security'
     | '/support'
     | '/activation'
+    | '/admin'
     | '/dashboard'
     | '/api/public/stripe-webhook'
+    | '/admin/'
+    | '/admin/customers/$id'
+    | '/admin/customers/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -139,6 +180,9 @@ export interface FileRouteTypes {
     | '/activation'
     | '/dashboard'
     | '/api/public/stripe-webhook'
+    | '/admin'
+    | '/admin/customers/$id'
+    | '/admin/customers'
   id:
     | '__root__'
     | '/'
@@ -150,8 +194,12 @@ export interface FileRouteTypes {
     | '/security'
     | '/support'
     | '/_authenticated/activation'
+    | '/_authenticated/admin'
     | '/_authenticated/dashboard'
     | '/api/public/stripe-webhook'
+    | '/_authenticated/admin/'
+    | '/_authenticated/admin/customers/$id'
+    | '/_authenticated/admin/customers/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -231,12 +279,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedActivationRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/api/public/stripe-webhook': {
       id: '/api/public/stripe-webhook'
@@ -245,16 +307,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin/customers/': {
+      id: '/_authenticated/admin/customers/'
+      path: '/customers'
+      fullPath: '/admin/customers/'
+      preLoaderRoute: typeof AuthenticatedAdminCustomersIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/customers/$id': {
+      id: '/_authenticated/admin/customers/$id'
+      path: '/customers/$id'
+      fullPath: '/admin/customers/$id'
+      preLoaderRoute: typeof AuthenticatedAdminCustomersIdRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
+interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminCustomersIdRoute: typeof AuthenticatedAdminCustomersIdRoute
+  AuthenticatedAdminCustomersIndexRoute: typeof AuthenticatedAdminCustomersIndexRoute
+}
+
+const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminCustomersIdRoute: AuthenticatedAdminCustomersIdRoute,
+  AuthenticatedAdminCustomersIndexRoute: AuthenticatedAdminCustomersIndexRoute,
+}
+
+const AuthenticatedAdminRouteWithChildren =
+  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedActivationRoute: typeof AuthenticatedActivationRoute
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedActivationRoute: AuthenticatedActivationRoute,
+  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
 }
 
