@@ -75,16 +75,21 @@ function AuthPage() {
           navigate({ to: "/dashboard" });
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const login = email.includes("@") ? email.trim() : `${email.trim().toLowerCase()}@web3.local`;
+        const { data, error } = await supabase.auth.signInWithPassword({ email: login, password });
         if (error) throw error;
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.user.id);
         toast.success("Signed in");
-        navigate({ to: "/dashboard" });
+        navigate({ to: roles?.some((r) => r.role === "admin") ? "/admin" : "/dashboard" });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong.";
       toast.error(
         message.toLowerCase().includes("invalid login")
-          ? "That email and password combination doesn't match an account."
+          ? "Those sign-in details don't match an account."
           : message,
       );
     } finally {
@@ -122,10 +127,10 @@ function AuthPage() {
               </div>
             ) : null}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{mode === "signin" ? "Email or username" : "Email"}</Label>
               <Input
                 id="email"
-                type="email"
+                type={mode === "signin" ? "text" : "email"}
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

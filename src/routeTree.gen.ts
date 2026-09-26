@@ -20,7 +20,6 @@ import { Route as SupportRouteImport } from './routes/support'
 import { Route as AuthenticatedActivationRouteImport } from './routes/_authenticated/activation'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
-import { Route as ApiPublicTmpBootstrapRouteImport } from './routes/api/public/tmp-bootstrap'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -76,11 +75,6 @@ const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   path: '/api/public/stripe-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicTmpBootstrapRoute = ApiPublicTmpBootstrapRouteImport.update({
-  id: '/api/public/tmp-bootstrap',
-  path: '/api/public/tmp-bootstrap',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -93,7 +87,6 @@ export interface FileRoutesByFullPath {
   '/activation': typeof AuthenticatedActivationRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
-  '/api/public/tmp-bootstrap': typeof ApiPublicTmpBootstrapRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -106,7 +99,6 @@ export interface FileRoutesByTo {
   '/activation': typeof AuthenticatedActivationRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
-  '/api/public/tmp-bootstrap': typeof ApiPublicTmpBootstrapRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -121,7 +113,6 @@ export interface FileRoutesById {
   '/_authenticated/activation': typeof AuthenticatedActivationRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
-  '/api/public/tmp-bootstrap': typeof ApiPublicTmpBootstrapRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -136,7 +127,6 @@ export interface FileRouteTypes {
     | '/activation'
     | '/dashboard'
     | '/api/public/stripe-webhook'
-    | '/api/public/tmp-bootstrap'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -149,7 +139,6 @@ export interface FileRouteTypes {
     | '/activation'
     | '/dashboard'
     | '/api/public/stripe-webhook'
-    | '/api/public/tmp-bootstrap'
   id:
     | '__root__'
     | '/'
@@ -163,7 +152,6 @@ export interface FileRouteTypes {
     | '/_authenticated/activation'
     | '/_authenticated/dashboard'
     | '/api/public/stripe-webhook'
-    | '/api/public/tmp-bootstrap'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -176,7 +164,6 @@ export interface RootRouteChildren {
   SecurityRoute: typeof SecurityRoute
   SupportRoute: typeof SupportRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
-  ApiPublicTmpBootstrapRoute: typeof ApiPublicTmpBootstrapRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -258,13 +245,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/tmp-bootstrap': {
-      id: '/api/public/tmp-bootstrap'
-      path: '/api/public/tmp-bootstrap'
-      fullPath: '/api/public/tmp-bootstrap'
-      preLoaderRoute: typeof ApiPublicTmpBootstrapRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -291,7 +271,6 @@ const rootRouteChildren: RootRouteChildren = {
   SecurityRoute: SecurityRoute,
   SupportRoute: SupportRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
-  ApiPublicTmpBootstrapRoute: ApiPublicTmpBootstrapRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
