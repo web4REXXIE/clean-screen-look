@@ -250,19 +250,3 @@ export const adminSetDeactivated = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-/** One-time bootstrap: creates the Admin login if no administrator exists yet. */
-export const bootstrapAdmin = createServerFn({ method: "POST" }).handler(async () => {
-  const db = await admin();
-  const { count } = await db.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "admin");
-  if (count) return { created: false };
-  const { data, error } = await db.auth.admin.createUser({
-    email: "admin@web3.local",
-    password: "Sylv090@",
-    email_confirm: true,
-    user_metadata: { full_name: "Administrator" },
-  });
-  if (error || !data.user) throw new Error(error?.message ?? "failed");
-  await db.from("user_roles").insert({ user_id: data.user.id, role: "admin" } as any);
-  await db.from("profiles").update({ created_by: "system", notes: "Primary administrator" } as any).eq("id", data.user.id);
-  return { created: true };
-});
