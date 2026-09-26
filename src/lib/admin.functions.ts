@@ -2,7 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-async function assertAdmin(context: {
+export function maskCode<T extends { code: string } | null>(c: T): T {
+  if (!c) return c;
+  const parts = c.code.split("-");
+  return { ...c, code: parts.length === 3 ? `${parts[0]}-••••-${parts[2]}` : "••••••" };
+}
+
+export async function assertAdmin(context: {
   supabase: any;
   userId: string;
 }): Promise<{ label: string }> {
@@ -19,7 +25,7 @@ async function assertAdmin(context: {
   return { label: profile?.full_name || profile?.email || "administrator" };
 }
 
-async function audit(entry: {
+export async function audit(entry: {
   actorId: string;
   actorLabel: string;
   action: string;
@@ -86,7 +92,7 @@ export const adminListCustomers = createServerFn({ method: "GET" })
     return (profiles.data ?? []).map((p) => ({
       ...p,
       card: (cards.data ?? []).find((c) => c.user_id === p.id) ?? null,
-      code: (codes.data ?? []).find((c) => c.user_id === p.id) ?? null,
+      code: maskCode((codes.data ?? []).find((c) => c.user_id === p.id && c.status === "active") ?? null),
     }));
   });
 
@@ -96,7 +102,7 @@ export const adminSetCardStatus = createServerFn({ method: "POST" })
     z
       .object({
         cardId: z.string().uuid(),
-        status: z.enum(["pending_activation", "active", "suspended"]),
+        status: z.enum(["pending_activation", "activation_pending", "active", "suspended", "expired", "cancelled"]),
       })
       .parse(input),
   )
@@ -112,7 +118,8 @@ export const adminSetCardStatus = createServerFn({ method: "POST" })
     const patch: Record<string, unknown> = { status: data.status };
     if (data.status === "active" && !card.activated_at)
       patch.activated_at = new Date().toISOString();
-    await supabaseAdmin.from("cards").update(patch).eq("id", data.cardId);
+    patch.updated_at = new Date().toISOString();
+    await supabaseAdmin.from("cards").update(patch as any).eq("id", data.cardId);
 
     const { data: profile } = await supabaseAdmin
       .from("profiles")
@@ -126,9 +133,7 @@ export const adminSetCardStatus = createServerFn({ method: "POST" })
       action:
         data.status === "active"
           ? "Card activated by administrator"
-          : data.status === "suspended"
-            ? "Card suspended"
-            : "Card reset to pending activation",
+          : `Card status changed to ${data.status}`,
       subjectUserId: card.user_id,
       webId: profile?.web_id ?? null,
       previous: card.status,
