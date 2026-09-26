@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { getMyAccount } from "@/lib/account.functions";
@@ -32,6 +34,18 @@ function Dashboard() {
     queryKey: ["my-account"],
     queryFn: () => fetchAccount(),
   });
+  const qc = useQueryClient();
+  useEffect(() => {
+    const ch = supabase
+      .channel("my-card")
+      .on("postgres_changes", { event: "*", schema: "public", table: "cards" }, () =>
+        qc.invalidateQueries({ queryKey: ["my-account"] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [qc]);
 
   if (isLoading) {
     return (
@@ -60,7 +74,7 @@ function Dashboard() {
   const { profile, card, codeVerified, payments, activeFee, paidPayment, isAdmin } = data;
   const status = card?.status ?? "pending_activation";
   const badge =
-    status === "active" ? "ACTIVE" : status === "suspended" ? "SUSPENDED" : "PENDING";
+    status === "active" ? "ACTIVE" : ["suspended", "expired", "cancelled"].includes(status) ? "SUSPENDED" : "PENDING";
 
   const steps = [
     { label: "Activation code verified", done: codeVerified },
