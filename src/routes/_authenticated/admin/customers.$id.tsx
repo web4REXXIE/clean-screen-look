@@ -96,18 +96,18 @@ function Account() {
         </Section>
         <Section title="Admin actions">
           {edit ? (
-            <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); run.mutate(() => update({ data: { id, fullName: edit.fullName, notes: edit.notes, webId: edit.webId, ...(card ? { cardRef: edit.cardRef } : {}), ...(active ? { code: edit.code } : {}) } }), { onSuccess: () => setEdit(null) }); }}>
+            <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); run.mutate(() => update({ data: { id, fullName: edit.fullName, notes: edit.notes, webId: edit.webId, ...(card ? { cardRef: edit.cardRef } : {}), ...(active && edit.code.trim() ? { code: edit.code } : {}) } }), { onSuccess: () => setEdit(null) }); }}>
               <div className="space-y-1"><Label>Customer name</Label><Input value={edit.fullName} onChange={(e) => setEdit({ ...edit, fullName: e.target.value })} /></div>
               <div className="space-y-1"><Label>Web ID</Label><Input className="mono" value={edit.webId} onChange={(e) => setEdit({ ...edit, webId: e.target.value })} /></div>
               {card ? <div className="space-y-1"><Label>Card ID</Label><Input className="mono" value={edit.cardRef} onChange={(e) => setEdit({ ...edit, cardRef: e.target.value })} /></div> : null}
-              {active ? <div className="space-y-1"><Label>Activation code</Label><Input className="mono" value={edit.code} onChange={(e) => setEdit({ ...edit, code: e.target.value })} /></div> : null}
+              {active ? <div className="space-y-1"><Label>Activation code</Label><Input className="mono" placeholder="Leave blank to keep current code" value={edit.code} onChange={(e) => setEdit({ ...edit, code: e.target.value })} /></div> : null}
               <p className="text-xs text-muted-foreground">3–40 letters, numbers or dashes. Must be unique.</p>
               <div className="space-y-1"><Label>Notes</Label><Textarea value={edit.notes} onChange={(e) => setEdit({ ...edit, notes: e.target.value })} /></div>
               <div className="flex gap-2"><Button type="submit" size="sm">Save</Button><Button type="button" size="sm" variant="outline" onClick={() => setEdit(null)}>Cancel</Button></div>
             </form>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
-              <Button variant="outline" onClick={() => setEdit({ fullName: p.full_name, notes: p.notes, webId: p.web_id, cardRef: card?.card_ref ?? "", code: active?.code ?? "" })}>Edit account</Button>
+              <Button variant="outline" onClick={() => setEdit({ fullName: p.full_name, notes: p.notes, webId: p.web_id, cardRef: card?.card_ref ?? "", code: "" })}>Edit account</Button>
               {card ? (
                 <div className="flex gap-2">
                   <select className="h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm" value={newStatus} onChange={(e) => setNewStatus(e.target.value)}>
