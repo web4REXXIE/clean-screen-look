@@ -64,7 +64,7 @@ export const getMyAccount = createServerFn({ method: "GET" })
 export const verifyActivationCode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { code: string }) =>
-    z.object({ code: z.string().min(4).max(40) }).parse(input),
+    z.object({ code: z.string().min(3).max(40) }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const { userId, supabase } = context;
