@@ -347,6 +347,6 @@ export const checkWebIdFormat = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const value = data.webId.trim().toUpperCase();
-    const valid = /^WEB3-[A-Z0-9]{6,12}$/.test(value);
+    const valid = /^[A-Z0-9][A-Z0-9-]{2,39}$/.test(value);
     return { valid, webId: value };
   });

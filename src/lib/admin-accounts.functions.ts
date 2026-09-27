@@ -3,9 +3,9 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertAdmin, audit, maskCode } from "./admin.functions";
 
-const WEB_ID = /^WEB3-[0-9A-F]{8}$/;
-const CARD_ID = /^CARD-[0-9A-F]{8}$/;
-const ACT_CODE = /^ACT-[0-9A-Z]{4}-[0-9A-Z]{3}$/;
+const WEB_ID = /^[A-Z0-9][A-Z0-9-]{2,39}$/;
+const CARD_ID = /^[A-Z0-9][A-Z0-9-]{2,39}$/;
+const ACT_CODE = /^[A-Z0-9][A-Z0-9-]{2,39}$/;
 
 function hex(n: number) {
   const bytes = crypto.getRandomValues(new Uint8Array(n));
@@ -47,12 +47,12 @@ export const adminGenerateWebId = createServerFn({ method: "POST" })
   });
 
 const createSchema = z.object({
-  webId: z.string().trim().toUpperCase().regex(WEB_ID, "Web ID must look like WEB3-XXXXXXXX (hex)"),
+  webId: z.string().trim().toUpperCase().regex(WEB_ID, "Web ID: 3–40 letters, numbers or dashes"),
   fullName: z.string().trim().min(2).max(120),
   email: z.string().trim().email().max(255),
   password: z.string().min(8).max(72),
-  cardRef: z.string().trim().toUpperCase().regex(CARD_ID, "Card ID must look like CARD-XXXXXXXX (hex)"),
-  code: z.string().trim().toUpperCase().regex(ACT_CODE, "Activation code must look like ACT-XXXX-XXX"),
+  cardRef: z.string().trim().toUpperCase().regex(CARD_ID, "Card ID: 3–40 letters, numbers or dashes"),
+  code: z.string().trim().toUpperCase().regex(ACT_CODE, "Activation code: 3–40 letters, numbers or dashes"),
   cardStatus: z.enum(["pending_activation", "activation_pending", "active", "suspended"]),
   notes: z.string().max(1000).default(""),
   demo: z.boolean().default(true),
@@ -134,15 +134,49 @@ export const adminGetAccount = createServerFn({ method: "GET" })
 
 export const adminUpdateAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { id: string; fullName: string; notes: string }) =>
-    z.object({ id: z.string().uuid(), fullName: z.string().trim().min(2).max(120), notes: z.string().max(1000) }).parse(input),
+  .inputValidator((input: { id: string; fullName: string; notes: string; webId?: string; cardRef?: string; code?: string }) =>
+    z.object({
+      id: z.string().uuid(),
+      fullName: z.string().trim().min(2).max(120),
+      notes: z.string().max(1000),
+      webId: z.string().trim().toUpperCase().regex(WEB_ID, "Web ID: 3–40 letters, numbers or dashes").optional(),
+      cardRef: z.string().trim().toUpperCase().regex(CARD_ID, "Card ID: 3–40 letters, numbers or dashes").optional(),
+      code: z.string().trim().toUpperCase().regex(ACT_CODE, "Activation code: 3–40 letters, numbers or dashes").optional(),
+    }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const { label } = await assertAdmin(context);
     const db = await admin();
     const { data: before } = await db.from("profiles").select("*").eq("id", data.id).single();
-    await db.from("profiles").update({ full_name: data.fullName, notes: data.notes, updated_by: label, updated_at: new Date().toISOString() } as any).eq("id", data.id);
-    await audit({ actorId: context.userId, actorLabel: label, action: "Account edited", subjectUserId: data.id, webId: before?.web_id, previous: before?.full_name, next: data.fullName });
+    if (!before) throw new Error("Account not found.");
+    const now = new Date().toISOString();
+    if (data.webId && data.webId !== before.web_id) {
+      const { count } = await db.from("profiles").select("id", { count: "exact", head: true }).eq("web_id", data.webId);
+      if (count) throw new Error("That Web ID is already in use.");
+    }
+    const { data: card } = await db.from("cards").select("id, card_ref").eq("user_id", data.id).order("created_at").limit(1).maybeSingle();
+    if (data.cardRef && card && data.cardRef !== card.card_ref) {
+      const { count } = await db.from("cards").select("id", { count: "exact", head: true }).eq("card_ref", data.cardRef);
+      if (count) throw new Error("That Card ID is already in use.");
+    }
+    const { data: code } = await db.from("activation_codes").select("id, code").eq("user_id", data.id).eq("status", "active").maybeSingle();
+    if (data.code && code && data.code !== code.code) {
+      const { count } = await db.from("activation_codes").select("id", { count: "exact", head: true }).eq("code", data.code);
+      if (count) throw new Error("That activation code is already in use.");
+    }
+    const webId = data.webId || before.web_id;
+    const { error } = await db.from("profiles").update({ full_name: data.fullName, notes: data.notes, web_id: webId, updated_by: label, updated_at: now } as any).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    if (data.cardRef && card && data.cardRef !== card.card_ref) {
+      await db.from("cards").update({ card_ref: data.cardRef, updated_at: now } as any).eq("id", card.id);
+      await audit({ actorId: context.userId, actorLabel: label, action: "Card ID edited", subjectUserId: data.id, webId, previous: card.card_ref, next: data.cardRef });
+    }
+    if (data.code && code && data.code !== code.code) {
+      await db.from("activation_codes").update({ code: data.code } as any).eq("id", code.id);
+      await audit({ actorId: context.userId, actorLabel: label, action: "Activation code edited", subjectUserId: data.id, webId });
+    }
+    if (webId !== before.web_id) await audit({ actorId: context.userId, actorLabel: label, action: "Web ID edited", subjectUserId: data.id, webId, previous: before.web_id, next: webId });
+    await audit({ actorId: context.userId, actorLabel: label, action: "Account edited", subjectUserId: data.id, webId, previous: before.full_name, next: data.fullName });
     return { ok: true };
   });
 
