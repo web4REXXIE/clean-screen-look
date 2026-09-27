@@ -64,7 +64,7 @@ export const getMyAccount = createServerFn({ method: "GET" })
 export const verifyActivationCode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { code: string }) =>
-    z.object({ code: z.string().min(4).max(40) }).parse(input),
+    z.object({ code: z.string().min(3).max(40) }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const { userId, supabase } = context;
@@ -347,6 +347,6 @@ export const checkWebIdFormat = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const value = data.webId.trim().toUpperCase();
-    const valid = /^WEB3-[A-Z0-9]{6,12}$/.test(value);
+    const valid = /^[A-Z0-9][A-Z0-9-]{2,39}$/.test(value);
     return { valid, webId: value };
   });

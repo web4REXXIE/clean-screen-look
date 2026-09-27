@@ -33,7 +33,7 @@ function ActivateEntry() {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const value = webId.trim().toUpperCase();
-    if (!/^WEB3-[A-Z0-9]{6,12}$/.test(value)) {
+    if (!/^[A-Z0-9][A-Z0-9-]{2,39}$/.test(value)) {
       setError(
         "That doesn't look like a Web ID. It should look like WEB3-915AA7E3.",
       );
