@@ -52,7 +52,7 @@ function Cards() {
                         <option value="">Select…</option>
                         {Object.keys(CARD_STATUS_LABEL).filter((s) => s !== r.card.status).map((s) => <option key={s} value={s}>{CARD_STATUS_LABEL[s]}</option>)}
                       </select>
-                      <Button size="sm" disabled={!choice[r.card.id]} onClick={() => setPending({ cardId: r.card.id, webId: r.web_id, from: r.card.status, to: choice[r.card.id] })}>Apply</Button>
+                      <Button size="sm" disabled={!choice[r.card.id]} onClick={() => setPending({ cardId: r.card.id, webId: r.web_id, from: r.card.status, to: choice[r.card.id]! })}>Apply</Button>
                     </div>
                   </td>
                 </tr>

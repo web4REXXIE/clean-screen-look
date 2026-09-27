@@ -85,7 +85,7 @@ function Account() {
                 <span className="flex items-center gap-2">
                   <StatusBadge value={c.status} />
                   {revealed[c.id] ? (
-                    <Button size="icon" variant="ghost" aria-label="Copy" onClick={() => { navigator.clipboard.writeText(revealed[c.id]); toast.success("Copied"); }}><Copy className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" aria-label="Copy" onClick={() => { navigator.clipboard.writeText(revealed[c.id] ?? ""); toast.success("Copied"); }}><Copy className="h-4 w-4" /></Button>
                   ) : (
                     <Button size="icon" variant="ghost" aria-label="Reveal" onClick={() => setPending({ title: "Reveal activation code?", body: "This will be recorded in the audit log.", run: async () => { const r = await reveal({ data: { codeId: c.id } }); setRevealed((s) => ({ ...s, [c.id]: r.code })); } })}><Eye className="h-4 w-4" /></Button>
                   )}
