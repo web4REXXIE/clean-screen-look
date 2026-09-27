@@ -30,9 +30,9 @@ export async function audit(entry: {
   actorLabel: string;
   action: string;
   subjectUserId?: string | null;
-  webId?: string | null;
-  previous?: string | null;
-  next?: string | null;
+  webId?: string | null | undefined;
+  previous?: string | null | undefined;
+  next?: string | null | undefined;
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   await supabaseAdmin.from("audit_logs").insert({
@@ -116,15 +116,15 @@ export const adminSetCardStatus = createServerFn({ method: "POST" })
       .single();
 
     const patch: Record<string, unknown> = { status: data.status };
-    if (data.status === "active" && !card.activated_at)
-      patch.activated_at = new Date().toISOString();
-    patch.updated_at = new Date().toISOString();
+    if (data.status === "active" && !card?.activated_at)
+      patch["activated_at"] = new Date().toISOString();
+    patch["updated_at"] = new Date().toISOString();
     await supabaseAdmin.from("cards").update(patch as any).eq("id", data.cardId);
 
     const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("web_id")
-      .eq("id", card.user_id)
+      .eq("id", card!.user_id)
       .maybeSingle();
 
     await audit({
@@ -134,9 +134,9 @@ export const adminSetCardStatus = createServerFn({ method: "POST" })
         data.status === "active"
           ? "Card activated by administrator"
           : `Card status changed to ${data.status}`,
-      subjectUserId: card.user_id,
+      subjectUserId: card!.user_id,
       webId: profile?.web_id ?? null,
-      previous: card.status,
+      previous: card!.status,
       next: data.status,
     });
     return { ok: true };
@@ -194,7 +194,7 @@ export const adminSaveFee = createServerFn({ method: "POST" })
         actorId: context.userId,
         actorLabel: label,
         action: `Service fee updated: ${data.name}`,
-        previous: `${before.name} · ${before.amount_cents / 100} · ${before.status}`,
+        previous: `${before!.name} · ${before!.amount_cents / 100} · ${before!.status}`,
         next: `${data.name} · ${data.amount} · ${data.status}`,
       });
     } else {
@@ -235,8 +235,8 @@ export const adminDeleteFee = createServerFn({ method: "POST" })
     await audit({
       actorId: context.userId,
       actorLabel: label,
-      action: `Service fee deleted: ${before.name}`,
-      previous: `${before.name} · ${before.amount_cents / 100} · ${before.status}`,
+      action: `Service fee deleted: ${before!.name}`,
+      previous: `${before!.name} · ${before!.amount_cents / 100} · ${before!.status}`,
       next: "deleted",
     });
     return { ok: true };
