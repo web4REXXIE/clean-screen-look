@@ -30,9 +30,9 @@ export async function audit(entry: {
   actorLabel: string;
   action: string;
   subjectUserId?: string | null;
-  webId?: string | null;
-  previous?: string | null;
-  next?: string | null;
+  webId?: string | null | undefined;
+  previous?: string | null | undefined;
+  next?: string | null | undefined;
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   await supabaseAdmin.from("audit_logs").insert({
@@ -116,9 +116,9 @@ export const adminSetCardStatus = createServerFn({ method: "POST" })
       .single();
 
     const patch: Record<string, unknown> = { status: data.status };
-    if (data.status === "active" && !card.activated_at)
-      patch.activated_at = new Date().toISOString();
-    patch.updated_at = new Date().toISOString();
+    if (data.status === "active" && !card?.activated_at)
+      patch["activated_at"] = new Date().toISOString();
+    patch["updated_at"] = new Date().toISOString();
     await supabaseAdmin.from("cards").update(patch as any).eq("id", data.cardId);
 
     const { data: profile } = await supabaseAdmin

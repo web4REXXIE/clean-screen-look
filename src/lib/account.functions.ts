@@ -206,7 +206,7 @@ export const startCheckout = createServerFn({ method: "POST" })
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       client_reference_id: payment.id,
-      customer_email: profile?.email || undefined,
+      ...(profile?.email ? { customer_email: profile.email } : {}),
       line_items: [
         {
           quantity: 1,
