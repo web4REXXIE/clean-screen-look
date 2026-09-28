@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSession } from "@/hooks/useSession";
+import { signInWithWebId } from "@/lib/webid-login.functions";
 
 const searchSchema = z.object({
   webId: z.string().optional(),
@@ -75,13 +76,24 @@ function AuthPage() {
           navigate({ to: "/dashboard" });
         }
       } else {
-        const login = email.includes("@") ? email.trim() : `${email.trim().toLowerCase()}@web3.local`;
-        const { data, error } = await supabase.auth.signInWithPassword({ email: login, password });
-        if (error) throw error;
-        const { data: roles } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", data.user.id);
+        const id = email.trim();
+        let userId: string;
+        if (!id.includes("@") && /^[A-Za-z0-9]+[-_][A-Za-z0-9-_]+$/.test(id)) {
+          const res = await signInWithWebId({ data: { webId: id, password } });
+          if (!res.ok) throw new Error(res.error);
+          const { data, error } = await supabase.auth.setSession({
+            access_token: res.access_token,
+            refresh_token: res.refresh_token,
+          });
+          if (error || !data.user) throw error ?? new Error("Sign-in failed");
+          userId = data.user.id;
+        } else {
+          const login = id.includes("@") ? id : `${id.toLowerCase()}@web3.local`;
+          const { data, error } = await supabase.auth.signInWithPassword({ email: login, password });
+          if (error) throw error;
+          userId = data.user.id;
+        }
+        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
         toast.success("Signed in");
         navigate({ to: roles?.some((r) => r.role === "admin") ? "/admin" : "/dashboard" });
       }

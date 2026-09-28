@@ -5,17 +5,22 @@ import { supabase } from "@/integrations/supabase/client";
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     let active = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!actAive) return;
-      setSession(data.session);
-      setLoading(false);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+    const load = async (next: Session | null) => {
+      if (!active) return;
       setSession(next);
-      setLoading(false);
+      if (next) {
+        const { data } = await supabase.from("user_roles").select("role").eq("user_id", next.user.id);
+        if (active) setIsAdmin(!!data?.some((r) => r.role === "admin"));
+      } else setIsAdmin(false);
+      if (active) setLoading(false);
+    };
+    supabase.auth.getSession().then(({ data }) => load(data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, next) => {
+      setTimeout(() => load(next), 0);
     });
     return () => {
       active = false;
@@ -23,5 +28,5 @@ export function useSession() {
     };
   }, []);
 
-  return { session, loading, user: session?.user ?? null };
+  return { session, loading, isAdmin, user: session?.user ?? null };
 }
