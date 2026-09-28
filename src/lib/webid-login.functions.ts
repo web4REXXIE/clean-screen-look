@@ -17,7 +17,7 @@ export const signInWithWebId = createServerFn({ method: "POST" })
       .ilike("web_id", data.webId)
       .maybeSingle();
     if (!prof?.email || prof.deactivated) return fail;
-    const pub = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+    const pub = createClient(process.env['SUPABASE_URL']!, process.env['SUPABASE_PUBLISHABLE_KEY']!, {
       auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
     });
     const { data: s, error } = await pub.auth.signInWithPassword({ email: prof.email, password: data.password });
