@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/hooks/useSession";
+import { supabase } from "@/integrations/supabase/client";
 
 const NAV = [
   { to: "/", label: "Home" },
@@ -15,7 +16,18 @@ const NAV = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
-  const { session } = useSession();
+  const { session, isAdmin } = useSession();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Sign out failed:", error);
+      return;
+    }
+    setOpen(false);
+    navigate({ to: "/" });
+  };
 
   return (
     <header className="sticky top-0 z-50 glass">
@@ -40,9 +52,19 @@ export function SiteHeader() {
 
         <div className="hidden items-center gap-2 lg:flex">
           {session ? (
-            <Button asChild size="sm">
-              <Link to="/dashboard">Dashboard</Link>
-            </Button>
+            <>
+              <Button asChild size="sm">
+                <Link to="/dashboard">Dashboard</Link>
+              </Button>
+              {isAdmin ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/admin">Admin Portal</Link>
+                </Button>
+              ) : null}
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                Logout
+              </Button>
+            </>
           ) : (
             <>
               <Button asChild variant="ghost" size="sm">
@@ -83,9 +105,19 @@ export function SiteHeader() {
           </nav>
           <div className="mt-4 flex flex-col gap-2">
             {session ? (
-              <Button asChild onClick={() => setOpen(false)}>
-                <Link to="/dashboard">Dashboard</Link>
-              </Button>
+              <>
+                <Button asChild onClick={() => setOpen(false)}>
+                  <Link to="/dashboard">Dashboard</Link>
+                </Button>
+                {isAdmin ? (
+                  <Button asChild variant="outline" onClick={() => setOpen(false)}>
+                    <Link to="/admin">Admin Portal</Link>
+                  </Button>
+                ) : null}
+                <Button variant="ghost" onClick={handleLogout}>
+                  Logout
+                </Button>
+              </>
             ) : (
               <>
                 <Button asChild variant="outline" onClick={() => setOpen(false)}>

@@ -109,7 +109,7 @@ export const adminCreateAccount = createServerFn({ method: "POST" })
 async function loadAccount(db: any, id: string) {
   const [p, cards, codes, pays, logs] = await Promise.all([
     db.from("profiles").select("*").eq("id", id).maybeSingle(),
-    db.from("cards").select("*").eq("user_id", id).order("created_at"),
+    db.from("cards").select(`*, service_fee:service_fees(*)`).eq("user_id", id).order("created_at"),
     db.from("activation_codes").select("*").eq("user_id", id).order("created_at", { ascending: false }),
     db.from("payments").select("*").eq("user_id", id).order("created_at", { ascending: false }),
     db.from("audit_logs").select("*").eq("subject_user_id", id).order("created_at", { ascending: false }).limit(50),
@@ -252,6 +252,87 @@ export const adminListCodes = createServerFn({ method: "GET" })
     }));
   });
 
+export const adminGenerateActivationCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { userId: string }) =>
+    z.object({ userId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { label } = await assertAdmin(context);
+    const db = await admin();
+
+    const { data: card } = await db
+      .from("cards")
+      .select("id, status")
+      .eq("user_id", data.userId)
+      .maybeSingle();
+    if (!card) throw new Error("This account has no card record yet.");
+    if (card.status === "active")
+      throw new Error("This card is already activated — no code needed.");
+
+    const { data: paidPayment } = await db
+      .from("payments")
+      .select("id")
+      .eq("user_id", data.userId)
+      .eq("status", "paid")
+      .maybeSingle();
+    if (!paidPayment)
+      throw new Error(
+        "This account has no confirmed payment yet. Confirm their payment before generating a code.",
+      );
+
+    const { data: existing } = await db
+      .from("activation_codes")
+      .select("id, code, verified_at")
+      .eq("user_id", data.userId)
+      .maybeSingle();
+    if (existing?.verified_at)
+      throw new Error("This account's activation code has already been verified.");
+
+    const digits = () => String(Math.floor(1000 + Math.random() * 9000));
+    const alnum = (len: number) => {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789";
+      let out = "";
+      for (let i = 0; i < len; i += 1) out += chars[Math.floor(Math.random() * chars.length)];
+      return out;
+    };
+    const code = `ACT-${digits()}-${alnum(3)}`;
+
+    if (existing) {
+      const { error: updateErr } = await db
+        .from("activation_codes")
+        .update({ code, status: "active", verified_at: null })
+        .eq("id", existing.id);
+      if (updateErr) throw new Error(`Could not update activation code: ${updateErr.message}`);
+    } else {
+      const { error: insertErr } = await db.from("activation_codes").insert({
+        user_id: data.userId,
+        card_id: card.id,
+        code,
+        status: "active",
+      } as any);
+      if (insertErr) throw new Error(`Could not create activation code: ${insertErr.message}`);
+    }
+
+    const { data: profile } = await db
+      .from("profiles")
+      .select("web_id")
+      .eq("id", data.userId)
+      .maybeSingle();
+
+    await audit({
+      actorId: context.userId,
+      actorLabel: label,
+      action: existing ? "Activation code regenerated" : "Activation code generated",
+      subjectUserId: data.userId,
+      webId: profile?.web_id ?? null,
+      previous: existing?.code ?? null,
+      next: code,
+    });
+
+    return { code };
+  });
+
 export const adminResetWorkflow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { userId: string }) => z.object({ userId: z.string().uuid() }).parse(input))
@@ -284,3 +365,63 @@ export const adminSetDeactivated = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Lets an admin assign (or clear) which service fee applies to a specific customer's card. */
+export const adminAssignServiceFee = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { cardId: string; serviceFeeId: string | null }) =>
+    z
+      .object({
+        cardId: z.string().uuid(),
+        serviceFeeId: z.string().uuid().nullable(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { label } = await assertAdmin(context);
+    const db = await admin();
+
+    const { data: card } = await db
+      .from("cards")
+      .select("id, user_id, service_fee_id")
+      .eq("id", data.cardId)
+      .maybeSingle();
+    if (!card) throw new Error("Card not found.");
+
+    let fee: any = null;
+    if (data.serviceFeeId) {
+      const { data: feeRow } = await db
+        .from("service_fees")
+        .select("*")
+        .eq("id", data.serviceFeeId)
+        .maybeSingle();
+      if (!feeRow) throw new Error("Service fee not found.");
+      fee = feeRow;
+    }
+
+    await db
+      .from("cards")
+      .update({
+        service_fee_id: data.serviceFeeId,
+        updated_at: new Date().toISOString(),
+        updated_by: label,
+      } as any)
+      .eq("id", data.cardId);
+
+    const { data: profile } = await db
+      .from("profiles")
+      .select("web_id")
+      .eq("id", card.user_id)
+      .maybeSingle();
+
+    await audit({
+      actorId: context.userId,
+      actorLabel: label,
+      action: "Card service assigned",
+      subjectUserId: card.user_id,
+      webId: profile?.web_id ?? null,
+      previous: card.service_fee_id ?? null,
+      next: fee?.id ?? null,
+    });
+
+    return { ok: true, serviceFee: fee };
+  });

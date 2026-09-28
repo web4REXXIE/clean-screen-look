@@ -5,9 +5,13 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export function maskCode<T extends { code: string } | null>(c: T): T {
   if (!c) return c;
   const parts = c.code.split("-");
-  return { ...c, code: parts.length === 3 ? `${parts[0]}-••••-${parts[2]}` : "••••••" };
+  return {
+    ...c,
+    code: parts.length === 3 ? `${parts[0]}-••••-${parts[2]}` : "••••••",
+  };
 }
 
+/** Stricter admin check: explicitly requires isAdmin === true, not just truthy. */
 export async function assertAdmin(context: {
   supabase: any;
   userId: string;
@@ -16,13 +20,17 @@ export async function assertAdmin(context: {
     _user_id: context.userId,
     _role: "admin",
   });
-  if (error || !isAdmin) throw new Error("Forbidden");
+  if (error || isAdmin !== true) {
+    throw new Error("Forbidden");
+  }
   const { data: profile } = await context.supabase
     .from("profiles")
     .select("full_name, email")
     .eq("id", context.userId)
     .maybeSingle();
-  return { label: profile?.full_name || profile?.email || "administrator" };
+  return {
+    label: profile?.full_name || profile?.email || "Administrator",
+  };
 }
 
 export async function audit(entry: {
@@ -92,7 +100,9 @@ export const adminListCustomers = createServerFn({ method: "GET" })
     return (profiles.data ?? []).map((p) => ({
       ...p,
       card: (cards.data ?? []).find((c) => c.user_id === p.id) ?? null,
-      code: maskCode((codes.data ?? []).find((c) => c.user_id === p.id && c.status === "active") ?? null),
+      code: maskCode(
+        (codes.data ?? []).find((c) => c.user_id === p.id && c.status === "active") ?? null,
+      ),
     }));
   });
 
@@ -102,7 +112,14 @@ export const adminSetCardStatus = createServerFn({ method: "POST" })
     z
       .object({
         cardId: z.string().uuid(),
-        status: z.enum(["pending_activation", "activation_pending", "active", "suspended", "expired", "cancelled"]),
+        status: z.enum([
+          "pending_activation",
+          "activation_pending",
+          "active",
+          "suspended",
+          "expired",
+          "cancelled",
+        ]),
       })
       .parse(input),
   )
@@ -161,7 +178,12 @@ export const adminSaveFee = createServerFn({ method: "POST" })
       name: string;
       description: string;
       amount: number;
+      currency: string;
+      effectiveDate: string;
       status: string;
+      paymentMethod: string;
+      walletAddress: string;
+      network: string;
     }) =>
       z
         .object({
@@ -169,7 +191,12 @@ export const adminSaveFee = createServerFn({ method: "POST" })
           name: z.string().min(2).max(120),
           description: z.string().min(2).max(400),
           amount: z.number().min(0).max(100000),
+          currency: z.string().length(3),
+          effectiveDate: z.string(),
           status: z.enum(["active", "disabled"]),
+          paymentMethod: z.enum(["stripe", "crypto"]),
+          walletAddress: z.string().max(200).optional().or(z.literal("")),
+          network: z.string().max(40),
         })
         .parse(input),
   )
@@ -180,8 +207,13 @@ export const adminSaveFee = createServerFn({ method: "POST" })
       name: data.name,
       description: data.description,
       amount_cents: Math.round(data.amount * 100),
+      currency: data.currency,
+      effective_date: data.effectiveDate,
       status: data.status,
-    };
+      crypto_network: data.paymentMethod === "crypto" ? data.network : null,
+      crypto_address:
+        data.paymentMethod === "crypto" ? (data.walletAddress || null) : null,
+    } as any;
 
     if (data.id) {
       const { data: before } = await supabaseAdmin
@@ -189,7 +221,16 @@ export const adminSaveFee = createServerFn({ method: "POST" })
         .select("*")
         .eq("id", data.id)
         .single();
-      await supabaseAdmin.from("service_fees").update(payload).eq("id", data.id);
+
+      const { error: updateErr } = await supabaseAdmin
+        .from("service_fees")
+        .update(payload)
+        .eq("id", data.id);
+
+      if (updateErr) {
+        throw new Error(`Could not update service fee: ${updateErr.message}`);
+      }
+
       await audit({
         actorId: context.userId,
         actorLabel: label,
@@ -198,7 +239,14 @@ export const adminSaveFee = createServerFn({ method: "POST" })
         next: `${data.name} · ${data.amount} · ${data.status}`,
       });
     } else {
-      await supabaseAdmin.from("service_fees").insert(payload);
+      const { error: insertErr } = await supabaseAdmin
+        .from("service_fees")
+        .insert(payload);
+
+      if (insertErr) {
+        throw new Error(`Could not create service fee: ${insertErr.message}`);
+      }
+
       await audit({
         actorId: context.userId,
         actorLabel: label,
@@ -247,14 +295,129 @@ export const adminListPayments = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertAdmin(context);
     const { supabase } = context;
-    const [payments, profiles] = await Promise.all([
+    const [payments, profiles, fees] = await Promise.all([
       supabase.from("payments").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("id, full_name, web_id, email"),
+      supabase.from("service_fees").select("*"),
     ]);
-    return (payments.data ?? []).map((p) => ({
-      ...p,
-      customer: (profiles.data ?? []).find((c) => c.id === p.user_id) ?? null,
-    }));
+    return (payments.data ?? []).map((p) => {
+      const fee = (fees.data ?? []).find((f) => f.id === p.service_fee_id) as any;
+      return {
+        ...p,
+        customer: (profiles.data ?? []).find((c) => c.id === p.user_id) ?? null,
+        cryptoNetwork: fee?.crypto_network ?? null,
+        cryptoAddress: fee?.crypto_address ?? null,
+      };
+    });
+  });
+
+export const adminConfirmPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { paymentId: string }) =>
+    z.object({ paymentId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { label } = await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: payment } = await supabaseAdmin
+      .from("payments")
+      .select("*")
+      .eq("id", data.paymentId)
+      .single();
+    if (!payment) throw new Error("Payment not found.");
+
+    if (payment.provider !== "crypto") {
+      throw new Error(
+        "Only crypto payments can be confirmed here. Stripe payments are confirmed automatically by the provider.",
+      );
+    }
+    if (payment.status !== "payment_submitted") {
+      throw new Error("Only a submitted crypto payment can be confirmed.");
+    }
+
+    const now = new Date().toISOString();
+    await supabaseAdmin
+      .from("payments")
+      .update({
+        status: "paid",
+        paid_at: now,
+      } as any)
+      .eq("id", data.paymentId);
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("web_id")
+      .eq("id", payment.user_id)
+      .maybeSingle();
+
+    await audit({
+      actorId: context.userId,
+      actorLabel: label,
+      action: "Crypto payment confirmed by administrator",
+      subjectUserId: payment.user_id,
+      webId: profile?.web_id ?? null,
+      previous: payment.status,
+      next: "paid",
+    });
+
+    return { ok: true };
+  });
+
+export const adminRejectCryptoPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { paymentId: string; reason: string }) =>
+    z
+      .object({
+        paymentId: z.string().uuid(),
+        reason: z.string().trim().min(3).max(300),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { label } = await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: paymentRow } = await supabaseAdmin
+      .from("payments")
+      .select("*")
+      .eq("id", data.paymentId)
+      .single();
+    if (!paymentRow) throw new Error("Payment not found.");
+    const payment = paymentRow as any;
+
+    if (payment.provider !== "crypto")
+      throw new Error(
+        "Only crypto payments can be rejected here. Stripe payments are handled by the provider.",
+      );
+    if (payment.status !== "payment_submitted")
+      throw new Error("Only a submitted crypto payment can be rejected.");
+
+    await supabaseAdmin
+      .from("payments")
+      .update({
+        status: "payment_failed",
+        crypto_rejection_reason: data.reason,
+      } as any)
+      .eq("id", payment.id);
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("web_id")
+      .eq("id", payment.user_id)
+      .maybeSingle();
+
+    await audit({
+      actorId: context.userId,
+      actorLabel: label,
+      action: `Crypto payment rejected: ${data.reason}`,
+      subjectUserId: payment.user_id,
+      webId: profile?.web_id ?? null,
+      previous: payment.status,
+      next: "payment_failed",
+    });
+
+    return { ok: true as const };
   });
 
 export const adminListAudit = createServerFn({ method: "GET" })

@@ -60,7 +60,8 @@ export const getMyAccount = createServerFn({ method: "GET" })
     };
   });
 
-/** Verifies the activation code issued with the customer's own card. */
+/** Verifies the activation code issued with the customer's own card.
+ *  Requires a confirmed ("paid") payment before the code itself is checked. */
 export const verifyActivationCode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { code: string }) =>
@@ -69,6 +70,19 @@ export const verifyActivationCode = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { userId, supabase } = context;
     const code = data.code.trim().toUpperCase();
+
+    const { data: paidPayment } = await supabase
+      .from("payments")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("status", "paid")
+      .maybeSingle();
+    if (!paidPayment)
+      return {
+        ok: false as const,
+        message:
+          "Your activation service fee must be confirmed as paid before you can verify your activation code.",
+      };
 
     const { data: card } = await supabase
       .from("cards")
@@ -279,6 +293,120 @@ export const refreshPaymentStatus = createServerFn({ method: "POST" })
     }
 
     return { status: payment.status };
+  });
+
+/** Records (or updates) a customer's submitted crypto payment. This can NEVER set status
+ *  to "paid" — only a separate admin confirmation function (not in this file) can do that. */
+export const submitCryptoPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { txReference: string }) =>
+    z.object({ txReference: z.string().trim().min(6).max(120) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { userId, supabase } = context;
+    const txReference = data.txReference;
+
+    const { data: card } = await supabase
+      .from("cards")
+      .select("id, status")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!card) throw new Error("No card record found on this account.");
+    if (card.status === "active") throw new Error("This card is already activated.");
+    if (card.status === "suspended")
+      throw new Error("This card is suspended and cannot be activated.");
+
+    const { data: fee } = await supabase
+      .from("service_fees")
+      .select("*")
+      .eq("status", "active")
+      .order("effective_date", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (!fee) throw new Error("No activation service is currently available.");
+
+    const feeCryptoConfig = fee as any;
+    if (!feeCryptoConfig.crypto_network || !feeCryptoConfig.crypto_address)
+      throw new Error(
+        "Crypto payment is not configured for this service. Please contact support.",
+      );
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: existingPaid } = await supabaseAdmin
+      .from("payments")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("status", "paid")
+      .maybeSingle();
+    if (existingPaid)
+      throw new Error("The activation service fee has already been paid on this account.");
+
+    const { data: existingCrypto } = await supabaseAdmin
+      .from("payments")
+      .select("id, status")
+      .eq("user_id", userId)
+      .eq("provider", "crypto")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const submittedAt = new Date().toISOString();
+
+    if (existingCrypto) {
+      await supabaseAdmin
+        .from("payments")
+        .update({
+          service_fee_id: fee.id,
+          service_name: fee.name,
+          amount_cents: fee.amount_cents,
+          currency: fee.currency,
+          status: "payment_submitted",
+          crypto_tx_reference: txReference,
+          crypto_submitted_at: submittedAt,
+        } as any)
+        .eq("id", existingCrypto.id);
+
+      await supabaseAdmin.from("audit_logs").insert({
+        actor_id: userId,
+        actor_label: "customer",
+        action: "Crypto payment resubmitted",
+        subject_user_id: userId,
+        previous_state: existingCrypto.status,
+        new_state: "payment_submitted",
+      });
+
+      return { ok: true as const, status: "payment_submitted" as const };
+    }
+
+    const reference = `WEB3-CRYPTO-${hex(8)}`;
+    const { error: insertErr } = await supabaseAdmin
+      .from("payments")
+      .insert({
+        user_id: userId,
+        card_id: card.id,
+        service_fee_id: fee.id,
+        service_name: fee.name,
+        reference,
+        amount_cents: fee.amount_cents,
+        currency: fee.currency,
+        provider: "crypto",
+        status: "payment_submitted",
+        crypto_tx_reference: txReference,
+        crypto_submitted_at: submittedAt,
+      } as any);
+    if (insertErr) throw new Error("Could not record your payment submission. Please try again.");
+
+    await supabaseAdmin.from("audit_logs").insert({
+      actor_id: userId,
+      actor_label: "customer",
+      action: "Crypto payment submitted",
+      subject_user_id: userId,
+      previous_state: "unpaid",
+      new_state: "payment_submitted",
+    });
+
+    return { ok: true as const, status: "payment_submitted" as const, reference };
   });
 
 /** Final step: activates the card once the code is verified and the fee is confirmed paid. */

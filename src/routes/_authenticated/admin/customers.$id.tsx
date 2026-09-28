@@ -4,8 +4,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ArrowLeft, Copy, Eye, Loader2 } from "lucide-react";
-import { adminSetCardStatus } from "@/lib/admin.functions";
+import { adminListFees, adminSetCardStatus } from "@/lib/admin.functions";
 import {
+  adminAssignServiceFee,
+  adminGenerateActivationCode,
   adminGetAccount,
   adminReplaceCode,
   adminResetWorkflow,
@@ -34,11 +36,17 @@ function Account() {
   const deact = useServerFn(adminSetDeactivated);
   const update = useServerFn(adminUpdateAccount);
   const reveal = useServerFn(adminRevealCode);
+  const listFees = useServerFn(adminListFees);
+  const assignService = useServerFn(adminAssignServiceFee);
+  const generateCode = useServerFn(adminGenerateActivationCode);
   const { data, isLoading, error } = useQuery({ queryKey: ["admin", "account", id], queryFn: () => get({ data: { id } }) });
+  const { data: fees } = useQuery({ queryKey: ["admin", "fees"], queryFn: () => listFees() });
   const [pending, setPending] = useState<Pending>(null);
   const [newStatus, setNewStatus] = useState("");
   const [edit, setEdit] = useState<{ fullName: string; notes: string; webId: string; cardRef: string; code: string } | null>(null);
   const [revealed, setRevealed] = useState<Record<string, string>>({});
+  const [selectedFee, setSelectedFee] = useState<string>("");
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
 
   const run = useMutation({
     mutationFn: (fn: () => Promise<unknown>) => fn(),
@@ -53,6 +61,7 @@ function Account() {
   const paid = payments.find((x: any) => x.status === "paid");
   const act = activationStatus(card, active);
   const step = card?.status === "active" ? "Completed" : paid ? "Awaiting activation" : active?.verified_at ? "Service fee payment" : "Activation code verification";
+  const currentFeeId = selectedFee || card?.service_fee_id || "";
 
   return (
     <>
@@ -93,7 +102,77 @@ function Account() {
               </div>
             ))}
           </div>
+          {paid && card && card.status !== "active" ? (
+            <div className="mt-3">
+              <Button
+                size="sm"
+                onClick={() =>
+                  run.mutate(async () => {
+                    const r = await generateCode({ data: { userId: id } });
+                    setGeneratedCode(r.code);
+                  })
+                }
+              >
+                Generate activation code
+              </Button>
+              {generatedCode ? (
+                <div className="mt-2 flex items-center justify-between gap-2 rounded-md border border-accent/40 bg-accent/10 p-2 text-sm">
+                  <span className="mono font-medium">{generatedCode}</span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label="Copy"
+                    onClick={() => {
+                      navigator.clipboard.writeText(generatedCode);
+                      toast.success("Copied");
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </Section>
+
+        {card ? (
+          <Section title="Card service configuration">
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium">Assigned service</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  This determines the disclosed service charge shown to this customer during activation.
+                </p>
+              </div>
+              <select
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={currentFeeId}
+                onChange={(e) => setSelectedFee(e.target.value)}
+              >
+                <option value="">No service assigned</option>
+                {(fees ?? [])
+                  .filter((fee: any) => fee.status === "active")
+                  .map((fee: any) => (
+                    <option key={fee.id} value={fee.id}>
+                      {fee.name} — {money(fee.amount_cents, fee.currency)}
+                    </option>
+                  ))}
+              </select>
+              <Button
+                size="sm"
+                onClick={() =>
+                  run.mutate(async () => {
+                    await assignService({ data: { cardId: card.id, serviceFeeId: currentFeeId || null } });
+                    qc.invalidateQueries({ queryKey: ["admin", "account", id] });
+                  })
+                }
+              >
+                Save service
+              </Button>
+            </div>
+          </Section>
+        ) : null}
+
         <Section title="Admin actions">
           {edit ? (
             <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); run.mutate(() => update({ data: { id, fullName: edit.fullName, notes: edit.notes, webId: edit.webId, ...(card ? { cardRef: edit.cardRef } : {}), ...(active && edit.code.trim() ? { code: edit.code } : {}) } }), { onSuccess: () => setEdit(null) }); }}>

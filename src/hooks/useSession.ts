@@ -9,7 +9,7 @@ export function useSession() {
   useEffect(() => {
     let active = true;
     supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
+      if (!actAive) return;
       setSession(data.session);
       setLoading(false);
     });
