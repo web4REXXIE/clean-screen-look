@@ -332,7 +332,7 @@ export const adminConfirmPayment = createServerFn({ method: "POST" })
         "Only crypto payments can be confirmed here. Stripe payments are confirmed automatically by the provider.",
       );
     }
-    if (payment.status !== "payment_submitted") {
+    if ((payment.status as string) !== "payment_submitted") {
       throw new Error("Only a submitted crypto payment can be confirmed.");
     }
 
