@@ -41,7 +41,7 @@ function AuthPage() {
   const navigate = useNavigate();
   const { session, loading } = useSession();
   const [mode, setMode] = useState<"signin" | "signup">(search.mode ?? "signin");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(search.webId ?? "");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -139,7 +139,7 @@ function AuthPage() {
               </div>
             ) : null}
             <div className="space-y-2">
-              <Label htmlFor="email">{mode === "signin" ? "Email or username" : "Email"}</Label>
+              <Label htmlFor="email">{mode === "signin" ? "Web ID, email or username" : "Email"}</Label>
               <Input
                 id="email"
                 type={mode === "signin" ? "text" : "email"}
