@@ -380,11 +380,12 @@ export const adminAssignServiceFee = createServerFn({ method: "POST" })
     const { label } = await assertAdmin(context);
     const db = await admin();
 
-    const { data: card } = await db
+    const { data: cardRow } = await db
       .from("cards")
-      .select("id, user_id, service_fee_id")
+      .select("*")
       .eq("id", data.cardId)
       .maybeSingle();
+    const card = cardRow as any;
     if (!card) throw new Error("Card not found.");
 
     let fee: any = null;
